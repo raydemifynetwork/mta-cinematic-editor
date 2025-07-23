@@ -1,0 +1,32 @@
+<meta>
+    <info author="RayDemifyNetwork" version="1.0.0" name="Cinematic Editor" description="Powerful cinematic editor for MTA" type="script" />
+    
+    <!-- Client Scripts (ordem importante) -->
+    <script src="client/utils.lua" type="client" cache="false" />
+    <script src="client/keyframes.lua" type="client" cache="false" />
+    <script src="client/transitions.lua" type="client" cache="false" />
+    <script src="client/playback.lua" type="client" cache="false" />
+    <script src="client/gui.lua" type="client" cache="false" />
+    <script src="client/cinematic_editor.lua" type="client" cache="false" />
+    
+    <!-- Server Scripts -->
+    <script src="server/main.lua" type="server" />
+    
+    <!-- Assets -->
+    <file src="assets/cursor.png" />
+    
+    <!-- Exported Functions -->
+    <export function="startCinematicEditor" type="client" />
+    <export function="stopCinematicEditor" type="client" />
+    
+    <!-- ACL Requests -->
+    <aclrequest>
+        <right name="general.ModifyOtherObjects" access="true" />
+        <right name="general.http" access="true" />
+        <right name="function.fetchRemote" access="true" />
+        <right name="general.adminpanel" access="true" />
+    </aclrequest>
+    
+    <!-- Minimum MTA Version -->
+    <min_mta_version client="1.5.6" server="1.5.6" />
+</meta>
