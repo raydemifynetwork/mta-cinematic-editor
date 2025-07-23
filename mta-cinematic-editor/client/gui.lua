@@ -3,6 +3,12 @@ GUI = {}
 GUI.__index = GUI
 
 function GUI:new(editor)
+    -- Verificar se editor existe
+    if not editor then
+        Utils.debug("Editor não fornecido para GUI!", true)
+        return nil
+    end
+    
     local self = setmetatable({}, GUI)
     
     self.editor = editor

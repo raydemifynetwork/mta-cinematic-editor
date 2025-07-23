@@ -204,4 +204,4 @@ _G.isCinematicEditorEnabled = isCinematicEditorEnabled
 _G.getCinematicEditorVersion = getCinematicEditorVersion
 _G.setCinematicEditorStatus = setCinematicEditorStatus
 
-logMessage("Server script carregado", nil)
+logMessage("Server script carregado", nil)  

@@ -32,14 +32,19 @@ function CinematicEditor:new()
     return self
 end
 
+
 function CinematicEditor:initialize()
     if self.initialized then 
         Utils.debug("Editor já inicializado!")
         return true 
     end
     
-    -- Criar sistemas
-    self:createCameraObject()
+    -- Criar sistemas com verificação
+    if not self:createCameraObject() then
+        Utils.debug("Falha ao criar objeto da câmera!", true)
+        return false
+    end
+    
     self.keyframeSystem = KeyframeSystem:new(self)
     self.transitionSystem = TransitionSystem:new(self)
     self.playbackSystem = PlaybackSystem:new(self)
@@ -49,13 +54,19 @@ function CinematicEditor:initialize()
     
     Utils.debug("Cinematic Editor v" .. self.config.version .. " inicializado com sucesso!")
     
-    -- Criar interface após carregar GUI
-    if GUI then
-        self.guiSystem = GUI:new(self)
-    end
-    
     return true
 end
+
+
+-- client/cinematic_editor.lua
+
+addEventHandler("onClientRender", root, function()
+    if self.isPlaying then return end -- Não alterar câmera durante reprodução
+    
+    if self.cameraObject then
+        setCameraTarget(self.cameraObject)
+    end
+end)
 
 function CinematicEditor:createCameraObject()
     local x, y, z = getElementPosition(localPlayer)
@@ -200,14 +211,11 @@ function stopCinematicEditor()
     end
 end
 
--- Eventos do MTA
+-- Eventos do MTA - apenas exportar funções
 addEventHandler("onClientResourceStart", resourceRoot, function()
-    -- Carregar dependências na ordem correta
-    if Utils and KeyframeSystem and TransitionSystem and PlaybackSystem then
-        startCinematicEditor()
-    else
-        outputChatBox("[CinematicEditor] Erro ao carregar dependências!", 255, 100, 100)
-    end
+    -- Apenas garantir que as classes estão disponíveis
+    _G.CinematicEditor = CinematicEditor
+    Utils.debug("Cinematic Editor carregado - use /cineditor para iniciar")
 end)
 
 addEventHandler("onClientResourceStop", resourceRoot, function()
@@ -216,8 +224,25 @@ addEventHandler("onClientResourceStop", resourceRoot, function()
     end
 end)
 
--- Comandos de teste
 addCommandHandler("cineditor", function()
+    if not CinematicEditor.instance then
+        CinematicEditor.instance = CinematicEditor:new()
+        CinematicEditor.instance:initialize()
+    else
+        -- Se já existe, apenas mostra a interface
+        if CinematicEditor.instance.guiSystem then
+            CinematicEditor.instance.guiSystem:toggle()
+        else
+            -- Recria a interface se necessário
+            if GUI then
+                CinematicEditor.instance.guiSystem = GUI:new(CinematicEditor.instance)
+            end
+            if CinematicEditor.instance.guiSystem then
+                CinematicEditor.instance.guiSystem:show()
+            end
+        end
+    end
+    
     outputChatBox("=== Cinematic Editor v" .. CinematicEditor.config.version .. " ===")
     outputChatBox("Comandos disponíveis:")
     outputChatBox("/addkeyframe [tempo] [easing] - Adicionar keyframe atual")
