@@ -3,7 +3,8 @@ GUI = {}
 GUI.__index = GUI
 
 function GUI:new(editor)
-    -- Verificar se editor existe
+    Utils.debug("Criando interface GUI...")
+    
     if not editor then
         Utils.debug("Editor não fornecido para GUI!", true)
         return nil
@@ -18,6 +19,7 @@ function GUI:new(editor)
     
     self:createInterface()
     
+    Utils.debug("Interface GUI criada com sucesso!")
     return self
 end
 

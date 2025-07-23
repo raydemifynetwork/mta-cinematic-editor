@@ -33,18 +33,29 @@ function CinematicEditor:new()
 end
 
 
+-- POR esta versão mais robusta:
 function CinematicEditor:initialize()
     if self.initialized then 
         Utils.debug("Editor já inicializado!")
+        -- Se já inicializado, mostrar interface
+        if self.guiSystem then
+            self.guiSystem:show()
+        elseif GUI then
+            self.guiSystem = GUI:new(self)
+            if self.guiSystem then
+                self.guiSystem:show()
+            end
+        end
         return true 
     end
     
-    -- Criar sistemas com verificação
+    -- Criar câmera
     if not self:createCameraObject() then
         Utils.debug("Falha ao criar objeto da câmera!", true)
         return false
     end
     
+    -- Criar sistemas
     self.keyframeSystem = KeyframeSystem:new(self)
     self.transitionSystem = TransitionSystem:new(self)
     self.playbackSystem = PlaybackSystem:new(self)
@@ -53,6 +64,14 @@ function CinematicEditor:initialize()
     self.currentState = CinematicEditor.states.EDITING
     
     Utils.debug("Cinematic Editor v" .. self.config.version .. " inicializado com sucesso!")
+    
+    -- Criar interface
+    if GUI then
+        self.guiSystem = GUI:new(self)
+        if self.guiSystem then
+            self.guiSystem:show()
+        end
+    end
     
     return true
 end
@@ -71,12 +90,19 @@ end)
 function CinematicEditor:createCameraObject()
     local x, y, z = getElementPosition(localPlayer)
     self.cameraObject = createObject(1337, x, y, z + 5) -- Objeto invisível
+    
+    if not self.cameraObject then
+        Utils.debug("Falha ao criar objeto da câmera!", true)
+        return false
+    end
+    
     setElementAlpha(self.cameraObject, 0)
     
     -- Fixar câmera no objeto
     setCameraTarget(self.cameraObject)
     
     Utils.debug("Camera object criado na posição: " .. x .. ", " .. y .. ", " .. z)
+    return true
 end
 
 function CinematicEditor:addCurrentPositionAsKeyframe(time, easing)
@@ -224,21 +250,25 @@ addEventHandler("onClientResourceStop", resourceRoot, function()
     end
 end)
 
+-- SUBSTITUA o comando /cineditor por:
 addCommandHandler("cineditor", function()
     if not CinematicEditor.instance then
         CinematicEditor.instance = CinematicEditor:new()
+    end
+    
+    if not CinematicEditor.instance.initialized then
         CinematicEditor.instance:initialize()
     else
-        -- Se já existe, apenas mostra a interface
+        -- Se já inicializado, apenas mostrar/alternar interface
         if CinematicEditor.instance.guiSystem then
             CinematicEditor.instance.guiSystem:toggle()
         else
-            -- Recria a interface se necessário
+            -- Recriar interface se necessário
             if GUI then
                 CinematicEditor.instance.guiSystem = GUI:new(CinematicEditor.instance)
-            end
-            if CinematicEditor.instance.guiSystem then
-                CinematicEditor.instance.guiSystem:show()
+                if CinematicEditor.instance.guiSystem then
+                    CinematicEditor.instance.guiSystem:show()
+                end
             end
         end
     end
