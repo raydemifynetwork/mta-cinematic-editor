@@ -7,7 +7,11 @@ CinematicEditor.config = {
     version = "1.0.0",
     debugMode = true,
     maxKeyframes = 100,
-    defaultTransitionTime = 2000
+    defaultTransitionTime = 2000,
+    -- Novas configurações de velocidade
+    cameraSpeed = 1.0,
+    rotationSpeed = 2.0,
+    mouseSensitivity = 1.0
 }
 
 -- Estados do editor
