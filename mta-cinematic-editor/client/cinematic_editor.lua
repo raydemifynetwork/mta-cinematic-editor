@@ -1,4 +1,4 @@
--- client/cinematic_editor.lua
+-- client/cinematic_editor.lua (versão atualizada)
 CinematicEditor = {}
 CinematicEditor.__index = CinematicEditor
 
@@ -25,6 +25,7 @@ function CinematicEditor:new()
     self.cameraObject = nil
     self.keyframeSystem = nil
     self.transitionSystem = nil
+    self.playbackSystem = nil
     self.guiSystem = nil
     self.isPlaying = false
     
@@ -41,13 +42,14 @@ function CinematicEditor:initialize()
     self:createCameraObject()
     self.keyframeSystem = KeyframeSystem:new(self)
     self.transitionSystem = TransitionSystem:new(self)
+    self.playbackSystem = PlaybackSystem:new(self)
     
     self.initialized = true
     self.currentState = CinematicEditor.states.EDITING
     
     Utils.debug("Cinematic Editor v" .. self.config.version .. " inicializado com sucesso!")
     
-    -- Criar interface
+    -- Criar interface após carregar GUI
     if GUI then
         self.guiSystem = GUI:new(self)
     end
@@ -116,76 +118,32 @@ function CinematicEditor:removeSelectedKeyframe()
 end
 
 function CinematicEditor:playCinematic()
-    if not self.keyframeSystem or not self.transitionSystem then
-        Utils.debug("Sistemas não inicializados!", true)
-        return false
+    if self.playbackSystem then
+        return self.playbackSystem:playFromStart()
     end
-    
-    local keyframes = self.keyframeSystem:getAllKeyframes()
-    if #keyframes < 2 then
-        Utils.debug("Necessário pelo menos 2 keyframes para reproduzir!", true)
-        return false
-    end
-    
-    self.currentState = CinematicEditor.states.PLAYING
-    self.isPlaying = true
-    
-    -- Esconder interface durante a reprodução
-    if self.guiSystem then
-        self.guiSystem:hide()
-    end
-    
-    Utils.debug("Iniciando reprodução de cinematic com " .. #keyframes .. " keyframes")
-    self:playNextSegment(1)
-    
-    return true
+    return false
 end
 
-function CinematicEditor:playNextSegment(index)
-    if not self.isPlaying or not self.keyframeSystem or not self.transitionSystem then
-        return
+function CinematicEditor:pauseCinematic()
+    if self.playbackSystem then
+        return self.playbackSystem:pause()
     end
-    
-    local keyframes = self.keyframeSystem:getAllKeyframes()
-    if index >= #keyframes then
-        self:stopCinematic()
-        return
+    return false
+end
+
+function CinematicEditor:resumeCinematic()
+    if self.playbackSystem then
+        return self.playbackSystem:resume()
     end
-    
-    local currentKeyframe = keyframes[index]
-    local nextKeyframe = keyframes[index + 1]
-    
-    if not currentKeyframe or not nextKeyframe then
-        self:stopCinematic()
-        return
-    end
-    
-    -- Callback para quando a transição terminar
-    local onTransitionComplete = function()
-        self:playNextSegment(index + 1)
-    end
-    
-    -- Iniciar transição
-    self.transitionSystem:playTransition(currentKeyframe, nextKeyframe, function(progress)
-        if progress >= 1.0 then
-            setTimer(onTransitionComplete, 100, 1)
-        end
-    end)
+    return false
 end
 
 function CinematicEditor:stopCinematic()
-    self.isPlaying = false
+    if self.playbackSystem then
+        self.playbackSystem:stop()
+    end
+    
     self.currentState = CinematicEditor.states.EDITING
-    
-    if self.transitionSystem then
-        self.transitionSystem:stopCurrentTransition()
-    end
-    
-    -- Mostrar interface novamente
-    if self.guiSystem then
-        self.guiSystem:show()
-    end
-    
     Utils.debug("Cinematic interrompido")
 end
 
@@ -202,6 +160,7 @@ function CinematicEditor:clearAll()
     Utils.debug("Todos os dados limpos!")
 end
 
+-- Getters
 function CinematicEditor:getCameraObject()
     return self.cameraObject
 end
@@ -212,6 +171,10 @@ end
 
 function CinematicEditor:getTransitionSystem()
     return self.transitionSystem
+end
+
+function CinematicEditor:getPlaybackSystem()
+    return self.playbackSystem
 end
 
 function CinematicEditor:getCurrentState()
@@ -239,8 +202,8 @@ end
 
 -- Eventos do MTA
 addEventHandler("onClientResourceStart", resourceRoot, function()
-    -- Carregar dependências primeiro
-    if Utils and KeyframeSystem and TransitionSystem then
+    -- Carregar dependências na ordem correta
+    if Utils and KeyframeSystem and TransitionSystem and PlaybackSystem then
         startCinematicEditor()
     else
         outputChatBox("[CinematicEditor] Erro ao carregar dependências!", 255, 100, 100)
@@ -259,9 +222,11 @@ addCommandHandler("cineditor", function()
     outputChatBox("Comandos disponíveis:")
     outputChatBox("/addkeyframe [tempo] [easing] - Adicionar keyframe atual")
     outputChatBox("/playcinematic - Reproduzir cinematica")
+    outputChatBox("/pausecinematic - Pausar reprodução")
+    outputChatBox("/resumecinematic - Retomar reprodução")
     outputChatBox("/stopcinematic - Parar reprodução")
     outputChatBox("/keyframecount - Contar keyframes")
-    outputChatChat("/clearcinematic - Limpar tudo")
+    outputChatBox("/clearcinematic - Limpar tudo")
 end)
 
 addCommandHandler("addkeyframe", function(player, cmd, time, easing)
@@ -271,18 +236,6 @@ addCommandHandler("addkeyframe", function(player, cmd, time, easing)
         if keyframe then
             outputChatBox("✓ Keyframe adicionado! ID: " .. keyframe.id .. " | Tempo: " .. keyframe.time .. "ms")
         end
-    end
-end)
-
-addCommandHandler("playcinematic", function()
-    if CinematicEditor.instance then
-        CinematicEditor.instance:playCinematic()
-    end
-end)
-
-addCommandHandler("stopcinematic", function()
-    if CinematicEditor.instance then
-        CinematicEditor.instance:stopCinematic()
     end
 end)
 
